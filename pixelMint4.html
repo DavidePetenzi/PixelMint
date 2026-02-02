@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PixelMint | Web3 Sprite Studio</title>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #0f172a 0%, #312e81 100%);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --bg: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; font-family: 'Courier New', Courier, monospace; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.5; overflow-x: hidden; padding-bottom: 50px; }
+        .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+        .hidden { display: none; }
+
+        header { 
+            background: var(--primary-gradient); 
+            padding: 24px 0; 
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 20px;
+        }
+        .header-content { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .logo { font-size: 42px; font-weight: 900; letter-spacing: -2px; background: linear-gradient(to right, #4ade80, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sub-logo { font-size: 14px; opacity: 0.7; font-family: sans-serif; }
+
+        nav { display: flex; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 4px; margin-top: 15px; width: 100%; max-width: 320px; border: 1px solid var(--glass-border); }
+        .nav-link { flex: 1; text-align: center; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; color: var(--text-muted); }
+        .nav-link.active { background: var(--accent); color: #000; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
+
+        .workspace { display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 20px; }
+        @media (min-width: 768px) { .workspace { grid-template-columns: 350px 1fr; } }
+
+        .panel { 
+            background: #1e293b; border-radius: 20px; padding: 20px; 
+            border: 1px solid var(--glass-border); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .canvas-container {
+            display: flex; justify-content: center; align-items: center;
+            background: #000; border-radius: 12px; padding: 10px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5); margin-bottom: 15px;
+            overflow: hidden; /* Prevent spill */
+        }
+
+        /* Il canvas deve avere dimensioni esplicite CSS per evitare stretching errato */
+        canvas { 
+            image-rendering: pixelated; 
+            cursor: crosshair; 
+            background-image: linear-gradient(45deg, #111 25%, transparent 25%), linear-gradient(-45deg, #111 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #111 75%), linear-gradient(-45deg, transparent 75%, #111 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            touch-action: none; /* Impedisce lo scroll mentre disegni su mobile */
+            max-width: 100%;
+            height: auto;
+        }
+
+        .controls-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
+        .color-btn { width: 100%; aspect-ratio: 1; border-radius: 8px; border: 2px solid transparent; cursor: pointer; }
+        .color-btn.active { border-color: white; transform: scale(1.1); box-shadow: 0 0 10px white; }
+        
+        /*.tool-btn { 
+            background: #334155; color: white; border: none; padding: 10px; border-radius: 8px; 
+            font-weight: bold; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;
+        }*/
+
+        .tool-btn {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px; /* Font più grande come richiesto */
+            font-weight: 800;
+            
+            text-align: center;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+            }
+
+        .tool-btn.active { background: var(--accent); color: black; }
+
+        .btn-main { 
+            width: 100%; padding: 14px; background: var(--accent); color: #000; 
+            border: none; border-radius: 12px; font-weight: 800; font-size: 16px; 
+            cursor: pointer; margin-top: 10px;
+        }
+
+        .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .asset-card { background: #1e293b; border-radius: 12px; padding: 10px; border: 1px solid var(--glass-border); }
+        .asset-img { width: 100%; aspect-ratio: 1; image-rendering: pixelated; background: #000; border-radius: 8px; display: block; }
+        
+        #pinata-jwt, #asset-name {
+    width: 100%;
+    padding: 14px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: white;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+        .json-box {
+            background: #000; color: #22c55e; font-family: monospace; font-size: 11px;
+            padding: 15px; border-radius: 8px; margin-top: 15px; white-space: pre-wrap;
+            height: 150px; overflow-y: auto; border: 1px solid #333;
+        }
+
+        h2 { font-size: 18px; margin-bottom: 15px; color: white; }
+        input[type="text"] { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <div class="logo">PixelMint</div>
+            <div class="sub-logo">Asset Studio</div>
+            <nav>
+                <div class="nav-link active" id="lnk-create" onclick="app.nav('create')">Studio</div>
+                
+                <div class="nav-link" id="lnk-vault" onclick="app.nav('vault')">My Vault</div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="view-create" class="workspace">
+            <div class="panel">
+                <h2>Tools</h2>
+                <div class="controls-grid">
+                    <button class="tool-btn active" id="tool-pen" onclick="app.setTool('pen')">✏️</button>
+                    <button class="tool-btn" id="tool-eraser" onclick="app.setTool('eraser')">🧽</button>
+                    <button class="tool-btn" onclick="app.clearCanvas()">🗑️</button>
+                    <button class="tool-btn" onclick="app.downloadPNG()">💾</button>
+                </div>
+                <h2>Palette</h2>
+                <div class="controls-grid" id="palette-grid"></div>
+                <h2 style="margin-top:20px;">Grid</h2>
+                <div style="display:flex; gap:10px;">
+                    <button class="tool-btn" style="flex:1" onclick="app.resize(16)">16x16</button>
+                    <button class="tool-btn" style="flex:1" onclick="app.resize(32)">32x32</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Canvas <span style="font-size:12px; background:#3b82f6; padding:2px 6px; border-radius:4px;" id="size-tag">16x16</span></h2>
+                <div class="canvas-container">
+                    <canvas id="pixelCanvas" width="320" height="320" style="width: 320px; height: 320px;"></canvas>
+                </div>
+                <input type="text" id="asset-name" placeholder="Asset Name (e.g. Hero_01)">
+                <input type="password" id="pinata-jwt" placeholder="Paste JWT">
+                <button class="btn-main" onclick="app.mintAsset()">MINT TO VAULT</button>
+            </div>
+        </div>
+
+        <div id="view-vault" class="hidden">
+            <div class="panel" style="margin-bottom: 20px;">
+                <h2>My Assets</h2>
+                <div id="vault-grid" class="asset-grid"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="meta-modal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:100; align-items:center; justify-content:center; padding:20px; display:none;">
+        <div class="panel" style="width:100%; max-width:600px; position:relative;">
+            <button onclick="document.getElementById('meta-modal').style.display='none'" style="position:absolute; top:15px; right:15px; background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+            <h2>Asset Metadata</h2>
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <img id="meta-img" src="" style="width:80px; height:80px; border-radius:8px; image-rendering:pixelated; border:1px solid #555;">
+                <div>
+                    <h3 id="meta-title" style="color:var(--accent)"></h3>
+                    <div id="meta-hash" style="font-size:10px; font-family:monospace; color:#aaa;"></div>
+                </div>
+            </div>
+            <div class="json-box" id="json-preview"></div>
+            <button class="btn-main" onclick="app.copyJSON()">COPY JSON</button>
+        </div>
+    </div>
+
+    <script>
+        class PixelApp {
+    constructor() {
+        this.state = {
+            assets: JSON.parse(localStorage.getItem('pm_assets')) || [],
+            gridSize: 16,
+            pixelSize: 20,
+            color: '#22c55e',
+            tool: 'pen',
+            isDrawing: false,
+            palette: ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#ffffff', '#94a3b8', '#475569', '#000000']
+        };
+        this.canvas = document.getElementById('pixelCanvas');
+        this.ctx = this.canvas.getContext('2d');
+    }
+
+    init() {
+        this.renderPalette();
+        this.setupCanvas();
+        
+        const drawHandler = (e) => { if(this.state.isDrawing) this.draw(e.touches ? e.touches[0] : e); };
+        
+        this.canvas.addEventListener('mousedown', (e) => { this.state.isDrawing = true; this.draw(e); });
+        window.addEventListener('mousemove', drawHandler);
+        window.addEventListener('mouseup', () => this.state.isDrawing = false);
+
+        this.canvas.addEventListener('touchstart', (e) => { this.state.isDrawing = true; this.draw(e.touches[0]); e.preventDefault(); }, {passive: false});
+        this.canvas.addEventListener('touchmove', (e) => { if(this.state.isDrawing) { this.draw(e.touches[0]); e.preventDefault(); }}, {passive: false});
+        window.addEventListener('touchend', () => this.state.isDrawing = false);
+    }
+
+    setupCanvas() {
+        this.state.pixelSize = 320 / this.state.gridSize;
+        this.ctx.clearRect(0, 0, 320, 320);
+    }
+
+    renderPalette() {
+        const grid = document.getElementById('palette-grid');
+        if(!grid) return;
+        grid.innerHTML = this.state.palette.map(c => 
+            `<div class="color-btn ${c === this.state.color ? 'active' : ''}" 
+                  style="background:${c}" 
+                  onclick="app.setColor('${c}')"></div>`
+        ).join('');
+    }
+
+    setColor(c) { this.state.color = c; this.renderPalette(); }
+
+    setTool(t) {
+        this.state.tool = t;
+        document.getElementById('tool-pen').classList.toggle('active', t === 'pen');
+        document.getElementById('tool-eraser').classList.toggle('active', t === 'eraser');
+    }
+
+    draw(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = Math.floor(((e.clientX - rect.left) * scaleX) / this.state.pixelSize);
+        const y = Math.floor(((e.clientY - rect.top) * scaleY) / this.state.pixelSize);
+
+        if(x < 0 || x >= this.state.gridSize || y < 0 || y >= this.state.gridSize) return;
+
+        if (this.state.tool === 'eraser') {
+            this.ctx.clearRect(x * this.state.pixelSize, y * this.state.pixelSize, this.state.pixelSize, this.state.pixelSize);
+        } else {
+            this.ctx.fillStyle = this.state.color;
+            this.ctx.fillRect(x * this.state.pixelSize, y * this.state.pixelSize, this.state.pixelSize, this.state.pixelSize);
+        }
+    }
+
+    async mintAsset() {
+        const nameInput = document.getElementById('asset-name');
+        const jwtInput = document.getElementById('pinata-jwt');
+        const name = nameInput.value.trim() || `Asset #${this.state.assets.length + 1}`;
+        const jwt = jwtInput.value.trim();
+
+        if (!jwt) return alert("Inserisci il JWT Pinata!");
+
+        try {
+            const imgData = this.canvas.toDataURL('image/png');
+            const blob = await (await fetch(imgData)).blob();
+            
+            // 1. Upload Immagine
+            const formData = new FormData();
+            formData.append('file', blob, 'pixel.png');
+            
+            const imgRes = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${jwt}` },
+                body: formData
+            });
+            const imgJson = await imgRes.json();
+            const cidImg = imgJson.IpfsHash;
+
+            // 2. Upload JSON Metadati
+            const metadata = {
+                name: name,
+                image: `ipfs://${cidImg}`,
+                external_url: `https://ipfs.filebase.io/ipfs/${cidImg}`,
+                attributes: [{ trait_type: "Grid", value: this.state.gridSize }]
+            };
+
+            const metaRes = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
+                body: JSON.stringify(metadata)
+            });
+            const metaJson = await metaRes.json();
+            const cidMeta = metaJson.IpfsHash;
+
+            // 3. Salva
+            this.state.assets.unshift({
+                id: Date.now(),
+                name,
+                img: imgData,
+                cidImg,
+                cidMeta
+            });
+
+            this.save();
+            nameInput.value = '';
+            alert("Salvato su IPFS!");
+            this.nav('vault');
+        } catch (e) {
+            console.error(e);
+            alert("Errore upload!");
+        }
+    }
+
+
+    downloadPNG() {
+    // 1. Recupera il nome dall'input (proprio come facciamo per il Mint)
+    const nameInput = document.getElementById('asset-name');
+    let fileName = nameInput.value.trim();
+
+    // 2. Se l'input è vuoto, usa un nome predefinito con la data attuale
+    if (!fileName) {
+        fileName = 'pixel-asset-' + Date.now();
+    }
+
+    // 3. Crea il link di download
+    const a = document.createElement('a');
+    a.download = `${fileName}.png`; // Usa il nome scelto + estensione .png
+    a.href = this.canvas.toDataURL('image/png');
+    
+    // 4. Avvia il download
+    a.click();
+}
+
+
+    renderVault() {
+        const grid = document.getElementById('vault-grid');
+        grid.innerHTML = this.state.assets.map(a => `
+            <div class="asset-card">
+                <img src="${a.img}" class="asset-img">
+                <div style="font-weight:bold; font-size:12px; margin:5px 0;">${a.name}</div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <a href="https://ipfs.filebase.io/ipfs/${a.cidMeta}" target="_blank" class="tool-btn" style="font-size:12px; text-decoration:none; background:#22c55e; color:black;">JSON</a>
+                    <a href="https://ipfs.filebase.io/ipfs/${a.cidImg}" target="_blank" class="tool-btn" style="font-size:12px; text-decoration:none; background:#3b82f6;">IMAGE</a>
+                    <button onclick="app.burn(${a.id})" class="tool-btn" style="font-size:12px; background:#ffffff;">BURN</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Utility functions
+    /*nav(v) {
+        document.getElementById('view-create').classList.toggle('hidden', v !== 'create');
+        document.getElementById('view-vault').classList.toggle('hidden', v !== 'vault');
+        if(v === 'vault') this.renderVault();
+    }*/
+
+    nav(v) {
+    // 1. Mostra/Nasconde le sezioni (Studio vs Vault)
+    document.getElementById('view-create').classList.toggle('hidden', v !== 'create');
+    document.getElementById('view-vault').classList.toggle('hidden', v !== 'vault');
+
+    // 2. Gestisce lo stato "active" dei pulsanti nella navigazione
+    const lnkCreate = document.getElementById('lnk-create');
+    const lnkVault = document.getElementById('lnk-vault');
+
+    if (v === 'create') {
+        lnkCreate.classList.add('active');
+        lnkVault.classList.remove('active');
+    } else {
+        lnkVault.classList.add('active');
+        lnkCreate.classList.remove('active');
+        this.renderVault(); // Aggiorna il vault quando lo apri
+    }
+}
+
+    save() { localStorage.setItem('pm_assets', JSON.stringify(this.state.assets)); }
+    burn(id) { if(confirm("Eliminare?")) { this.state.assets = this.state.assets.filter(a => a.id !== id); this.save(); this.renderVault(); }}
+    clearCanvas() { if(confirm("Pulisci?")) this.ctx.clearRect(0,0,320,320); }
+    resize(s) { this.state.gridSize = s; 
+
+        const sizeTag = document.getElementById('size-tag');
+        if(sizeTag) {
+            sizeTag.innerText = `${s}x${s}`;
+        }
+
+        this.setupCanvas(); }
+}
+
+let app;
+window.addEventListener('DOMContentLoaded', () => { app = new PixelApp(); app.init(); });
+    </script>
+</body>
+</html>
